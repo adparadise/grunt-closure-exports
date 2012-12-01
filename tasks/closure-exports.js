@@ -49,35 +49,42 @@ module.exports = function (grunt) {
         return fragments;
     }
 
-    function readNamespacePaths (baseDir, source) {
+    function resolveRequirePath (source, outputDir) {
+        return "./" + source;
+    }
+
+    function readNamespacePaths (baseDir, source, outputDir) {
         var sourcePath, contents;
-        var namespaces, moduleName, match;
+        var namespacePathFragments, moduleName, match;
         var namespacePath;
 
         sourcePath = path.join(baseDir, source);
         contents = fs.readFileSync(sourcePath).toString();
 
-        namespaces = namespacesFromPath(source);
+        namespacePathFragments = namespacesFromPath(source);
 
         match = /module.exports = ([^\W]+)/.exec(contents);
         if (match) {
             moduleName = match[1];
         }
         if (moduleName) {
-            namespaces[namespaces.length - 1] = moduleName;
+            namespacePathFragments[namespacePathFragments.length - 1] = moduleName;
         }
-        namespacePath = namespaces.join(NAMESPACE_PATH_SEP);
+        requirePath = resolveRequirePath(source, outputDir);
 
-        return [namespacePath];
+        return {
+            namespacePathFragments: namespacePathFragments,
+            requirePath: requirePath
+        };
     }
 
-    function buildNamespacePaths (baseDir, sources) {
+    function buildNamespacePaths (baseDir, sources, outputDir) {
         var namespacePaths = [];
         var index, source;
 
         for (index = 0; index < sources.length; index++) {
             source = sources[index];
-            namespacePaths = namespacePaths.concat(readNamespacePaths(baseDir, source));
+            namespacePaths.push(readNamespacePaths(baseDir, source, outputDir));
         }
 
         return namespacePaths;
@@ -90,13 +97,14 @@ module.exports = function (grunt) {
         var currentNamespace, subtree;
 
         for (index = 0; index < namespacePaths.length; index++) {
-            namespaceFragments = namespacePaths[index].split(NAMESPACE_PATH_SEP);
+            namespaceInfo = namespacePaths[index];
+            namespaceFragments = namespaceInfo.namespacePathFragments;
             currentNamespace = namespaceTree;
             for (fragmentIndex = 0; fragmentIndex < namespaceFragments.length; fragmentIndex++) {
                 fragment = namespaceFragments[fragmentIndex];
-                subtree = false;
-                if (fragmentIndex !== namespaceFragments.length - 1) {
-                    subtree = {};
+                subtree = {}
+                if (fragmentIndex === namespaceFragments.length - 1) {
+                    subtree = namespaceInfo.requirePath;
                 }
                 if (!currentNamespace[fragment]) {
                     currentNamespace[fragment] = subtree;
@@ -122,7 +130,7 @@ module.exports = function (grunt) {
             }
             fragments = ["window"];
             subtree = namespaceTree[namespace];
-            isNamespace = !!subtree;
+            isNamespace = typeof subtree === "object";
             if (prefix) {
                 for (index = 0; index < prefix.length; index++) {
                     fragments.push("[\"" + prefix[index] + "\"]");
@@ -132,7 +140,7 @@ module.exports = function (grunt) {
             if (isNamespace) {
                 fragments.push(" = {};");
             } else {
-                fragments.push(" = " + namespace + ";");
+                fragments.push(" = require(\"" + subtree + "\");");
             }
             exports.push(fragments.join(""));
 
@@ -164,7 +172,7 @@ module.exports = function (grunt) {
         outputPath = this.data.output || "exports.js";
         sources = findAllSync(baseDir, this.data.source);
 
-        namespacePaths = buildNamespacePaths(baseDir, sources);
+        namespacePaths = buildNamespacePaths(baseDir, sources, path.dirname(outputPath));
         namespaceTree = {};
         namespaceTree[namespace] = buildNamespaceTree(namespacePaths);
         exports = buildExports(namespaceTree);

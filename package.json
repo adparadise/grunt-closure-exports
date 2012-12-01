@@ -9,7 +9,10 @@
   "keywords": [
     "gruntplugin"
   ],
-  "repository": "",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/adparadise/grunt-closure-exports.git"
+  },
   "author": "Andrew Paradise",
   "license": "BSD",
   "bundleDependencies": [
