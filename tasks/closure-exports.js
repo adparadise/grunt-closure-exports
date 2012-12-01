@@ -87,15 +87,19 @@ module.exports = function (grunt) {
         var namespaceFragments;
         var index, fragmentIndex, fragment;
         var namespaceTree = {};
-        var currentNamespace;
+        var currentNamespace, subtree;
 
         for (index = 0; index < namespacePaths.length; index++) {
             namespaceFragments = namespacePaths[index].split(NAMESPACE_PATH_SEP);
             currentNamespace = namespaceTree;
             for (fragmentIndex = 0; fragmentIndex < namespaceFragments.length; fragmentIndex++) {
                 fragment = namespaceFragments[fragmentIndex];
+                subtree = false;
+                if (fragmentIndex !== namespaceFragments.length - 1) {
+                    subtree = {};
+                }
                 if (!currentNamespace[fragment]) {
-                    currentNamespace[fragment] = {};
+                    currentNamespace[fragment] = subtree;
                 }
                 currentNamespace = currentNamespace[fragment];
             }
@@ -104,19 +108,68 @@ module.exports = function (grunt) {
         return namespaceTree;
     }
 
+    function buildExports (namespaceTree, prefix, exports) {
+        var namespace, subtree;
+        var fragments, isNamespace;
+        var subPrefix;
+        var index;
+        if (!exports) {
+            exports = [];
+        }
+        for (namespace in namespaceTree) {
+            if (!namespaceTree.hasOwnProperty(namespace)) {
+                continue;
+            }
+            fragments = ["window"];
+            subtree = namespaceTree[namespace];
+            isNamespace = !!subtree;
+            if (prefix) {
+                for (index = 0; index < prefix.length; index++) {
+                    fragments.push("[\"" + prefix[index] + "\"]");
+                }
+            }
+            fragments.push("[\"" + namespace + "\"]");
+            if (isNamespace) {
+                fragments.push(" = {};");
+            } else {
+                fragments.push(" = " + namespace + ";");
+            }
+            exports.push(fragments.join(""));
+
+            if (isNamespace) {
+                subPrefix = prefix && prefix.slice(0) || [];
+                subPrefix.push(namespace);
+                buildExports(subtree, subPrefix, exports);
+            }
+        }
+        return exports;
+    }
+
+    function writeExports (outputPath, exportsString) {
+        //fs.mkdirSync(path.dirname(outputPath));
+        fs.writeFileSync(outputPath, exportsString, undefined, function (error) {
+            if (error) {
+                throw error;
+            }
+        });
+    };
+
     grunt.registerMultiTask('closure-exports', 'Build Closure exports for dirs', function () {
         var baseDir, sources, namespace;
         var namespacePaths, namespaceTree;
+        var exports;
 
         baseDir = this.data.baseDir || ".";
-        sources = findAllSync(baseDir, this.data.source);
         namespace = this.data.namespace || "App";
+        outputPath = this.data.output || "exports.js";
+        sources = findAllSync(baseDir, this.data.source);
 
         namespacePaths = buildNamespacePaths(baseDir, sources);
         namespaceTree = {};
         namespaceTree[namespace] = buildNamespaceTree(namespacePaths);
+        exports = buildExports(namespaceTree);
 
-        console.log(namespaceTree);
+        writeExports(outputPath, exports.join("\n") + "\n");
     });
 };
 
