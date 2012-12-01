@@ -1,6 +1,6 @@
 # grunt-closure-exports
 
-This [Grunt](http://gruntjs.org) task is a companion to Google's [Closure Compiler](https://developers.google.com/closure/compiler/) for building [exports](https://developers.google.com/closure/compiler/docs/api-tutorial3#export) exposing your classes to the browser.
+This [Grunt](http://gruntjs.com) task is a companion to Google's [Closure Compiler](https://developers.google.com/closure/compiler/) for building [exports](https://developers.google.com/closure/compiler/docs/api-tutorial3#export) exposing your classes to the browser.
 
 
 ## How it Works
