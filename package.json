@@ -1,5 +1,5 @@
 {
-  "name": "closure-exports",
+  "name": "grunt-closure-exports",
   "version": "0.0.0",
   "description": "A grunt task to build closure export statements external to the source code",
   "main": "grunt.js",
