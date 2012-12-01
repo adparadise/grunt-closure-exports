@@ -1,0 +1,23 @@
+{
+  "name": "closure-exports",
+  "version": "0.0.0",
+  "description": "A grunt task to build closure export statements external to the source code",
+  "main": "grunt.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gruntplugin"
+  ],
+  "repository": "",
+  "author": "Andrew Paradise",
+  "license": "BSD",
+  "bundleDependencies": [
+    "lodash",
+    "glob"
+  ],
+  "dependencies": {
+    "lodash": "~0.10.0",
+    "glob": "~3.1.14"
+  }
+}
